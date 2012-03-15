@@ -1,4 +1,6 @@
-import socket,asyncore
+import socket
+import string
+import asyncore
 
 class forwarder(asyncore.dispatcher):
 
@@ -34,8 +36,16 @@ class receiver(asyncore.dispatcher):
         pass
 
     def handle_read(self):
-        read = self.recv(8192)
+        read = self.recv(1024)
         if (self.debug == 1): print('[receiver] %04i ->>> :%s' % (len(read), read))
+        # this is the point to manipulate data from client
+        temp = string.split(read, "\n")
+        temp2 = temp.pop( )
+        for line in temp:
+            line = string.rstrip(line)
+            line = string.split(line)
+            if (line[0] == "PRIVMSG"):
+                read = " ".join(line) + " .... encode()\r\n"
         self.from_remote_buffer += read
 
     def writable(self):
@@ -67,8 +77,16 @@ class sender(asyncore.dispatcher):
         pass
 
     def handle_read(self):
-        read = self.recv(8192)
+        read = self.recv(1024)
         if (self.debug == 1): print('[sender] <<<- %04i :%s' % (len(read), read))
+        # this is the point to manipulate data from server
+        temp = string.split(read, "\n")
+        temp2 = temp.pop( )
+        for line in temp:
+            line = string.rstrip(line)
+            line = string.split(line)
+            if (line[1] == "PRIVMSG"):
+                read = " ".join(line) + " .... decode()\r\n"
         self.receiver.to_remote_buffer += read
 
     def writable(self):
@@ -76,7 +94,7 @@ class sender(asyncore.dispatcher):
 
     def handle_write(self):
         sent = self.send(self.receiver.from_remote_buffer)
-        if (self.debug == 1): print('[sender] ->>> %04i :%s' % (sent, self.receiver.from_remote_buffer[sent:]))
+        if (self.debug == 1): print('[sender] ->>> %04i :%s' % (sent, self.receiver.from_remote_buffer))
         self.receiver.from_remote_buffer = self.receiver.from_remote_buffer[sent:]
 
     def handle_close(self):
