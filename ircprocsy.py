@@ -81,14 +81,14 @@ if __name__=='__main__':
         help='Local IP address to bind to')
     parser.add_option(
         '-p','--local-port',
-        type='int',dest='local_port',default=80,
+        type='int',dest='local_port',default=6667,
         help='Local port to bind to')
     parser.add_option(
         '-r','--remote-ip',dest='remote_ip',
         help='Local IP address to bind to')
     parser.add_option(
         '-P','--remote-port',
-        type='int',dest='remote_port',default=80,
+        type='int',dest='remote_port',default=6667,
         help='Remote port to bind to')
     options, args = parser.parse_args()
 
