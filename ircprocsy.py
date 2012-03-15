@@ -34,8 +34,8 @@ class receiver(asyncore.dispatcher):
         pass
 
     def handle_read(self):
-        read = self.recv(4096)
-        if (self.debug == 1): print('%04i -->' % len(read))
+        read = self.recv(8192)
+        if (self.debug == 1): print('[receiver] %04i ->>> :%s' % (len(read), read))
         self.from_remote_buffer += read
 
     def writable(self):
@@ -43,7 +43,7 @@ class receiver(asyncore.dispatcher):
 
     def handle_write(self):
         sent = self.send(self.to_remote_buffer)
-        if (self.debug == 1): print('%04i <--' % sent)
+        if (self.debug == 1): print('[receiver] %04i <<<- :%s' % (sent, self.to_remote_buffer))
         self.to_remote_buffer = self.to_remote_buffer[sent:]
 
     def handle_close(self):
@@ -67,8 +67,8 @@ class sender(asyncore.dispatcher):
         pass
 
     def handle_read(self):
-        read = self.recv(4096)
-        if (self.debug == 1): print('<-- %04i' % len(read))
+        read = self.recv(8192)
+        if (self.debug == 1): print('[sender] <<<- %04i :%s' % (len(read), read))
         self.receiver.to_remote_buffer += read
 
     def writable(self):
@@ -76,7 +76,7 @@ class sender(asyncore.dispatcher):
 
     def handle_write(self):
         sent = self.send(self.receiver.from_remote_buffer)
-        if (self.debug == 1): print('--> %04i' % sent)
+        if (self.debug == 1): print('[sender] ->>> %04i :%s' % (sent, self.receiver.from_remote_buffer[sent:]))
         self.receiver.from_remote_buffer = self.receiver.from_remote_buffer[sent:]
 
     def handle_close(self):
