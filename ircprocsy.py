@@ -1,8 +1,12 @@
 import socket,asyncore
 
 class forwarder(asyncore.dispatcher):
-    def __init__(self, ip, port, remoteip,remoteport,backlog=5):
-        asyncore.dispatcher.__init__(self)
+
+    debug = 0
+
+    def __init__(self, debug, ip, port, remoteip, remoteport, backlog=5):
+	asyncore.dispatcher.__init__(self)
+        self.debug = debug
         self.remoteip=remoteip
         self.remoteport=remoteport
         self.create_socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -12,12 +16,16 @@ class forwarder(asyncore.dispatcher):
 
     def handle_accept(self):
         conn, addr = self.accept()
-        # print '--- Connect --- '
-        sender(receiver(conn),self.remoteip,self.remoteport)
+        if (self.debug == 1): print('--- Connect --- ')
+        sender(self.debug, receiver(self.debug, conn), self.remoteip, self.remoteport)
 
 class receiver(asyncore.dispatcher):
-    def __init__(self,conn):
+
+    debug = 0
+
+    def __init__(self, debug, conn):
         asyncore.dispatcher.__init__(self,conn)
+        self.debug = debug
         self.from_remote_buffer=''
         self.to_remote_buffer=''
         self.sender=None
@@ -27,7 +35,7 @@ class receiver(asyncore.dispatcher):
 
     def handle_read(self):
         read = self.recv(4096)
-        # print '%04i -->'%len(read)
+        if (self.debug == 1): print('%04i -->' % len(read))
         self.from_remote_buffer += read
 
     def writable(self):
@@ -35,7 +43,7 @@ class receiver(asyncore.dispatcher):
 
     def handle_write(self):
         sent = self.send(self.to_remote_buffer)
-        # print '%04i <--'%sent
+        if (self.debug == 1): print('%04i <--' % sent)
         self.to_remote_buffer = self.to_remote_buffer[sent:]
 
     def handle_close(self):
@@ -44,8 +52,12 @@ class receiver(asyncore.dispatcher):
             self.sender.close()
 
 class sender(asyncore.dispatcher):
-    def __init__(self, receiver, remoteaddr,remoteport):
+
+    debug = 0
+
+    def __init__(self, debug, receiver, remoteaddr,remoteport):
         asyncore.dispatcher.__init__(self)
+        self.debug = debug
         self.receiver=receiver
         receiver.sender=self
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -56,7 +68,7 @@ class sender(asyncore.dispatcher):
 
     def handle_read(self):
         read = self.recv(4096)
-        # print '<-- %04i'%len(read)
+        if (self.debug == 1): print('<-- %04i' % len(read))
         self.receiver.to_remote_buffer += read
 
     def writable(self):
@@ -64,7 +76,7 @@ class sender(asyncore.dispatcher):
 
     def handle_write(self):
         sent = self.send(self.receiver.from_remote_buffer)
-        # print '--> %04i'%sent
+        if (self.debug == 1): print('--> %04i' % sent)
         self.receiver.from_remote_buffer = self.receiver.from_remote_buffer[sent:]
 
     def handle_close(self):
@@ -72,9 +84,11 @@ class sender(asyncore.dispatcher):
         self.receiver.close()
 
 if __name__=='__main__':
+
+    debug = 1
+
     import optparse
     parser = optparse.OptionParser()
-
     parser.add_option(
         '-l','--local-ip',
         dest='local_ip',default='127.0.0.1',
@@ -92,5 +106,5 @@ if __name__=='__main__':
         help='Remote port to bind to')
     options, args = parser.parse_args()
 
-    forwarder(options.local_ip,options.local_port,options.remote_ip,options.remote_port)
+    forwarder(debug, options.local_ip, options.local_port, options.remote_ip, options.remote_port)
     asyncore.loop()
