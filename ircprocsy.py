@@ -1,6 +1,7 @@
 import socket
 import string
 import asyncore
+import base64
 
 class forwarder(asyncore.dispatcher):
 
@@ -44,8 +45,15 @@ class receiver(asyncore.dispatcher):
         for line in temp:
             line = string.rstrip(line)
             line = string.split(line)
-            if (line[0] == "PRIVMSG"):
-                read = " ".join(line) + " .... encode()\r\n"
+            # (RFC) PRIVMSG #channel :encode(message)
+            if (len(line) >= 2):
+                if (line[0] == "PRIVMSG"):
+                    token = " ".join(line[2:]).lstrip(':')
+                    try:
+                        token_encoded = base64.b64encode(token)
+                    except:
+                        token_encoded = token
+                    read = line[0] + " " + line[1] + " " + token_encoded + "\n"
         self.from_remote_buffer += read
 
     def writable(self):
@@ -85,8 +93,15 @@ class sender(asyncore.dispatcher):
         for line in temp:
             line = string.rstrip(line)
             line = string.split(line)
-            if (line[1] == "PRIVMSG"):
-                read = " ".join(line) + " .... decode()\r\n"
+            # (RFC) :nickname!user@domain PRIVMSG #channel :decode(encode(message))
+            if (len(line) >= 3):
+                if (line[1] == "PRIVMSG"):
+                    token = " ".join(line[3:]).lstrip(':')
+                    try:
+                        token_decoded = base64.b64decode(token)
+                    except:
+                        token_decoded = token
+                    read = line[0] + " " + line[1] + " " + line[2] + " :" + token_decoded + "\n"
         self.receiver.to_remote_buffer += read
 
     def writable(self):
@@ -103,7 +118,7 @@ class sender(asyncore.dispatcher):
 
 if __name__=='__main__':
 
-    debug = 1
+    debug = 0
 
     import optparse
     parser = optparse.OptionParser()
